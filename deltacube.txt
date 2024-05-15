@@ -1,0 +1,74 @@
+atleast articles - regex by articles
+3 category - homepage, homepage/page, article
+
+pivot table (index - cookie -id , column - date)
+
+-------------
+articles - lda - topic modeling - 
+10 topic 
+
+t1, t2, .... t10
+
+---------------------
+
+df.groupby(device, city name , country name, freq(categorical - new/return/loyal
+), subscribber_accnt, topic modelling column)
+
+min , max, mean,std total_time_on_page_seconds, 
+
+min , max, mean, std engagged timwe on page seconds
+
+min , max, mean,std  of ratio,
+
+cluster - (500 to 10 )
+
+
+----------------
+
+
+top 5 website engagement kpis
+clustering:
+vif
+-- 2 featuires will be converted to "ratio" column
+
+
+
+
+engagement ratio = egg/total
+
+device 3 - desktop, laptopn,. tab
+groyup by device 
+desktop - max, min, std, mean, median
+coeff of variation 
+desk- avg -20
+laptop - 30 (more helpful in giving ads)
+tab - 10
+
+
+
+ratio - 1 one way annova amongst 10 groups
+
+1- way annova
+HO: 3 same
+H!: not same
+this is benchmark
+colcusion: which device is significantly different
+------------
+
+
+registered vs non registerd
+2 annova for each category
+colclusion: -----
+
+if not conclusion:
+new user vs non- new user
+----------------------------
+time of the day 
+
+--------------------------
+in python convert timestamp to human readable
+
+time - histogram (not eual bins)
+kde plot
+-----------------------------
+

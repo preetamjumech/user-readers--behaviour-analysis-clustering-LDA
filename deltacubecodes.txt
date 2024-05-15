@@ -1,0 +1,457 @@
+---------------------------- topic modeling ------------------------------------------------
+
+
+
+import datetime
+import pandas as pd 
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+df = Content_Reading_Behavior()
+df.head()
+
+#------------------- fillna by others in city column
+df["CITY_NAME"] = df["CITY_NAME"].fillna('others')
+df["COUNTRY_NAME"] = df["COUNTRY_NAME"].fillna('others')
+df["PAGE_TITLE"] = df["PAGE_TITLE"].fillna('others')
+df.isna().sum()
+subs_na_df = df[df["SUBSCRIBER_ACCT"].isna()]
+
+# KDE plot
+plt.figure(figsize=(8, 6))
+plt.hist(subs_na_df["TOTAL_TIME_ON_PAGE_SECONDS"], edgecolor='black')
+plt.xlabel('Value')
+plt.ylabel('Density')
+plt.title('KDE Plot of Sample Data')
+plt.grid(True)
+plt.show()
+subs_na_df.describe()
+subs_na_df["SUBSCRIBER_ACCT"].unique()
+df["SUBSCRIBER_ACCT"] = df["SUBSCRIBER_ACCT"].fillna('others')
+df.isna().sum()
+
+total_time_on_page_na_df = df[df["TOTAL_TIME_ON_PAGE_SECONDS"].isna()]
+total_time_on_page_na_df.head()
+total_time_on_page_na_df["SUBSCRIBER_ACCT"].unique()
+df["TOTAL_TIME_ON_PAGE_SECONDS"] = df["TOTAL_TIME_ON_PAGE_SECONDS"].fillna(0)
+df.isna().sum()
+#---------------------------------topic modeling------------------------
+import nltk
+from nltk.corpus import stopwords  #stopwords
+from nltk.stem import WordNetLemmatizer  
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+nltk.download('stopwords')
+stop_words = set(stopwords.words('english'))
+nltk.download('punkt')
+nltk.download('wordnet')
+
+def clean_text(headline):
+    le=WordNetLemmatizer()
+    word_tokens=nltk.tokenize.word_tokenize(headline)
+    tokens=[le.lemmatize(w) for w in word_tokens if w not in stop_words and len(w)>3]
+    cleaned_text=" ".join(tokens)
+    return cleaned_text
+df['cleaned_article']=df['SECTION'].apply(clean_text)
+df.head()
+
+
+vect =TfidfVectorizer(stop_words=list(stop_words),max_features=10000, max_df=0.8, min_df=2)
+vect_text=vect.fit_transform(df['cleaned_article'])
+
+
+from sklearn.decomposition import LatentDirichletAllocation
+lda_model=LatentDirichletAllocation(n_components=10,
+learning_method='online',random_state=42,max_iter=1) 
+lda_top=lda_model.fit_transform(vect_text)
+
+dominant_topics = lda_top.argmax(axis=1)
+df['topic'] = dominant_topics
+df.head()
+
+
+------------------------- time bin -------------------------------------------------
+
+import datetime
+import pandas as pd 
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+df = Content_Reading_Behavior()
+df.head()
+
+#------------------- fillna by others in city column
+df["CITY_NAME"] = df["CITY_NAME"].fillna('others')
+df["COUNTRY_NAME"] = df["COUNTRY_NAME"].fillna('others')
+df["PAGE_TITLE"] = df["PAGE_TITLE"].fillna('others')
+df.isna().sum()
+subs_na_df = df[df["SUBSCRIBER_ACCT"].isna()]
+
+# KDE plot
+plt.figure(figsize=(8, 6))
+plt.hist(subs_na_df["TOTAL_TIME_ON_PAGE_SECONDS"], edgecolor='black')
+plt.xlabel('Value')
+plt.ylabel('Density')
+plt.title('KDE Plot of Sample Data')
+plt.grid(True)
+plt.show()
+subs_na_df.describe()
+subs_na_df["SUBSCRIBER_ACCT"].unique()
+df["SUBSCRIBER_ACCT"] = df["SUBSCRIBER_ACCT"].fillna('others')
+df.isna().sum()
+
+total_time_on_page_na_df = df[df["TOTAL_TIME_ON_PAGE_SECONDS"].isna()]
+total_time_on_page_na_df.head()
+total_time_on_page_na_df["SUBSCRIBER_ACCT"].unique()
+df["TOTAL_TIME_ON_PAGE_SECONDS"] = df["TOTAL_TIME_ON_PAGE_SECONDS"].fillna(0)
+df.isna().sum()
+df['date'] = df['LAST_PING_TIMESTAMP'].apply(lambda x: datetime.datetime.fromtimestamp(x).strftime("%Y-%m-%d"))
+df['time'] = df['LAST_PING_TIMESTAMP'].apply(lambda x: datetime.datetime.fromtimestamp(x).strftime("%H:%M:%S"))
+
+df['date'] = pd.to_datetime(df['date'])
+df['time'] = pd.to_datetime(df['time']).dt.hour
+
+# df["hour"] = df["time"].dt.hour
+# df["hour"]
+df["time"].tail()
+bins = [0,1,2,3,4,5,6,7,8,9,10, 11, 12,13, 14, 15, 16, 17, 18, 19, 20, 21, 22,23, 24]
+# bins = pd.to_timedelta([i * np.timedelta64(1, 'h') for i in range(24)])
+# bins = [str(t)[7:-3] for t in bins]
+# # bins = [float(i) for i in bins]
+# bins
+# bins = [str(t)[:-3] for t in bins.dt.components]
+
+labels = ['00:00-00:59', '01:00-01:59', '02:00-02:59', '03:00-03:59', '04:00-04:59', '05:00-05:59', '06:00-06:59', 
+'07:00-07:59', '08:00-08:59', '09:00-9:59', '10:00-10:59', '11:00-11:59', '12:00-12:59', '13:00-13:59', '14:00-14:59', 
+'15:00-15:59', '16:00-16:59', '17:00-17:59', '18:00-18:59', '19:00-19:59', '20:00-20:59', '21:00-21:59', '22:00-22:59', 
+'23:00-23:59']
+# # # labels = pd.to_timedelta([pd.to_datetime(t).time() for t in labels])
+df['time_bin'] = pd.cut(df.time, bins= bins, labels=labels, right=False)
+df.head()
+
+
+#---------------------------------topic modeling------------------------
+import nltk
+from nltk.corpus import stopwords  #stopwords
+from nltk.stem import WordNetLemmatizer  
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+nltk.download('stopwords')
+stop_words = set(stopwords.words('english'))
+nltk.download('punkt')
+nltk.download('wordnet')
+
+def clean_text(headline):
+    le=WordNetLemmatizer()
+    word_tokens=nltk.tokenize.word_tokenize(headline)
+    tokens=[le.lemmatize(w) for w in word_tokens if w not in stop_words and len(w)>3]
+    cleaned_text=" ".join(tokens)
+    return cleaned_text
+df['cleaned_article']=df['SECTION'].apply(clean_text)
+df.head()
+
+
+vect =TfidfVectorizer(stop_words=list(stop_words),max_features=10000, max_df=0.8, min_df=2)
+vect_text=vect.fit_transform(df['cleaned_article'])
+
+
+from sklearn.decomposition import LatentDirichletAllocation
+lda_model=LatentDirichletAllocation(n_components=10,
+learning_method='online',random_state=42,max_iter=1) 
+lda_top=lda_model.fit_transform(vect_text)
+
+dominant_topics = lda_top.argmax(axis=1)
+df['topic'] = dominant_topics
+df.head()
+
+
+-----------------------------------groupby codes ---------------------------------------
+
+Opera_desc = Opera.groupby("COOKIE_ID").agg(mean=pd.NamedAgg(column='ENGAGED_TIME_ON_PAGE_SECONDS', aggfunc='mean'),
+                                       min=pd.NamedAgg(column='ENGAGED_TIME_ON_PAGE_SECONDS', aggfunc='min'),
+                                       max=pd.NamedAgg(column='ENGAGED_TIME_ON_PAGE_SECONDS', aggfunc='max'),
+                                       std=pd.NamedAgg(column='ENGAGED_TIME_ON_PAGE_SECONDS', aggfunc='std'))
+Opera_desc_sorted = Opera_desc.sort_values(by='mean',ascending = False)
+Opera_desc_ungrouped = Opera_desc_sorted.reset_index()
+top_10_Opera=Opera_desc_ungrouped.nlargest(10,"mean")
+plt.figure(figsize=(10, 6))
+plt.bar(top_10_Opera['COOKIE_ID'], top_10_Opera['mean'])
+plt.xlabel('COOKIE_ID')
+plt.ylabel('mean engaged time')
+plt.title('Top 10 Opera_Users')
+plt.xticks(rotation=45, ha='right')
+plt.tight_layout()
+
+plt.show()
+
+------------------------------------------- browser --------------------------------------------------------
+browsers = {
+    "Chrome": r"(?i)Chrome/",  # Case-insensitive search for "Chrome/"
+    "Firefox": r"(?i)Firefox/",
+    "Safari": r"(?i)Safari/",
+    "Edge": r"(?i)Edge/",
+    "Opera": r"(?i)Opera/"
+}
+import re
+# Define lambda function with regular expressions
+def get_browser(user_agent):
+  for browser, pattern in browsers.items():
+    if re.search(pattern, user_agent):
+      return browser
+  return "Other"
+
+# Apply lambda function
+df['browser'] = df['USER_AGENT'].apply(get_browser)
+df.head()
+---------------------------------- entire------------------------------------------------------
+import datetime
+import pandas as pd 
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+df = Content_Reading_Behavior()
+df.head()
+
+#------------------- fillna by others in city column
+df["CITY_NAME"] = df["CITY_NAME"].fillna('others')
+df["COUNTRY_NAME"] = df["COUNTRY_NAME"].fillna('others')
+df["PAGE_TITLE"] = df["PAGE_TITLE"].fillna('others')
+df.isna().sum()
+subs_na_df = df[df["SUBSCRIBER_ACCT"].isna()]
+
+# KDE plot
+plt.figure(figsize=(8, 6))
+plt.hist(subs_na_df["TOTAL_TIME_ON_PAGE_SECONDS"], edgecolor='black')
+plt.xlabel('Value')
+plt.ylabel('Density')
+plt.title('KDE Plot of Sample Data')
+plt.grid(True)
+plt.show()
+subs_na_df.describe()
+subs_na_df["SUBSCRIBER_ACCT"].unique()
+df["SUBSCRIBER_ACCT"] = df["SUBSCRIBER_ACCT"].fillna('others')
+df.isna().sum()
+
+total_time_on_page_na_df = df[df["TOTAL_TIME_ON_PAGE_SECONDS"].isna()]
+total_time_on_page_na_df.head()
+total_time_on_page_na_df["SUBSCRIBER_ACCT"].unique()
+df["TOTAL_TIME_ON_PAGE_SECONDS"] = df["TOTAL_TIME_ON_PAGE_SECONDS"].fillna(0)
+df.isna().sum()
+#---------------------------------creating user type (new,returning, loyal)------------------------
+
+# Define a function to assign category based on frequency
+def assign_category(frequency):
+  if frequency == 0:
+    return "New User"
+  elif 1 <= frequency <= 7:
+    return "Returning User"
+  else:
+    return "Loyal User"
+
+# Create a new column named "category" and assign values based on the function
+df['user_category'] = df['FREQUENCY'].apply(assign_category)
+
+#-------------------------- subscribe type - -----------------------------
+def sunscriber_category(subscribe):
+  if subscribe == 0.0:
+    return "Guest User"
+  elif subscribe == 1.0:
+    return "Registered User" 
+  else:
+    return "Subscribed User"
+
+# Create a new column named "category" and assign values based on the function
+df['subscriber_type'] = df['SUBSCRIBER_ACCT'].apply(sunscriber_category)
+#----------------- browser ------------------------------
+browsers = {
+    "Chrome": r"(?i)Chrome/",  # Case-insensitive search for "Chrome/"
+    "Firefox": r"(?i)Firefox/",
+    "Safari": r"(?i)Safari/",
+    "Edge": r"(?i)Edge/",
+    "Opera": r"(?i)Opera/"
+}
+import re
+# Define lambda function with regular expressions
+def get_browser(user_agent):
+  for browser, pattern in browsers.items():
+    if re.search(pattern, user_agent):
+      return browser
+  return "Other"
+
+# Apply lambda function
+df['browser'] = df['USER_AGENT'].apply(get_browser)
+
+#----------------------------- time bin ---------------------------
+df['date'] = df['LAST_PING_TIMESTAMP'].apply(lambda x: datetime.datetime.fromtimestamp(x).strftime("%Y-%m-%d"))
+df['time'] = df['LAST_PING_TIMESTAMP'].apply(lambda x: datetime.datetime.fromtimestamp(x).strftime("%H:%M:%S"))
+
+df['date'] = pd.to_datetime(df['date'])
+df['time'] = pd.to_datetime(df['time']).dt.hour
+
+# df["hour"] = df["time"].dt.hour
+# df["hour"]
+df["time"].tail()
+bins = [0,1,2,3,4,5,6,7,8,9,10, 11, 12,13, 14, 15, 16, 17, 18, 19, 20, 21, 22,23, 24]
+# bins = pd.to_timedelta([i * np.timedelta64(1, 'h') for i in range(24)])
+# bins = [str(t)[7:-3] for t in bins]
+# # bins = [float(i) for i in bins]
+# bins
+# bins = [str(t)[:-3] for t in bins.dt.components]
+
+labels = ['00:00-00:59', '01:00-01:59', '02:00-02:59', '03:00-03:59', '04:00-04:59', '05:00-05:59', '06:00-06:59', 
+'07:00-07:59', '08:00-08:59', '09:00-09:59', '10:00-10:59', '11:00-11:59', '12:00-12:59', '13:00-13:59', '14:00-14:59', 
+'15:00-15:59', '16:00-16:59', '17:00-17:59', '18:00-18:59', '19:00-19:59', '20:00-20:59', '21:00-21:59', '22:00-22:59', 
+'23:00-23:59']
+# # # labels = pd.to_timedelta([pd.to_datetime(t).time() for t in labels])
+df['time_bin'] = pd.cut(df.time, bins= bins, labels=labels, right=False)
+
+# --------------------------------------- topic modeling ---------------------------------
+import nltk
+from nltk.corpus import stopwords  #stopwords
+from nltk.stem import WordNetLemmatizer  
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+nltk.download('stopwords')
+stop_words = set(stopwords.words('english'))
+nltk.download('punkt')
+nltk.download('wordnet')
+
+def clean_text(headline):
+    le=WordNetLemmatizer()
+    word_tokens=nltk.tokenize.word_tokenize(headline)
+    tokens=[le.lemmatize(w) for w in word_tokens if w not in stop_words and len(w)>3]
+    cleaned_text=" ".join(tokens)
+    return cleaned_text
+df['cleaned_article']=df['SECTION'].apply(clean_text)
+
+
+
+vect =TfidfVectorizer(stop_words=list(stop_words),max_features=10000, max_df=0.8, min_df=2)
+vect_text=vect.fit_transform(df['cleaned_article'])
+
+
+from sklearn.decomposition import LatentDirichletAllocation
+lda_model=LatentDirichletAllocation(n_components=10,
+learning_method='online',random_state=42,max_iter=1) 
+lda_top=lda_model.fit_transform(vect_text)
+
+dominant_topics = lda_top.argmax(axis=1)
+df['topic'] = dominant_topics
+
+#---------------------------------------- replacing time bin by numbers-------------------
+df['time_bin'].isna().sum()
+time_intervals = [
+    "00:00-00:59", "01:00-01:59", "02:00-02:59", "03:00-03:59",
+    "04:00-04:59", "05:00-05:59", "06:00-06:59", "07:00-07:59",
+    "08:00-08:59", "09:00-09:59", "10:00-10:59", "11:00-11:59",
+    "12:00-12:59", "13:00-13:59", "14:00-14:59", "15:00-15:59",
+    "16:00-16:59", "17:00-17:59", "18:00-18:59", "19:00-19:59",
+    "20:00-20:59", "21:00-21:59", "22:00-22:59", "23:00-23:59"
+]
+
+mapping_dict = {interval: str(i) for i, interval in enumerate(time_intervals)}
+
+df['time_hour_cat'] = df['time_bin'].map(mapping_dict)
+
+df_c = df.copy()
+del df
+
+df_c.drop(["LAST_PING_TIMESTAMP",'COOKIE_ID','PAGE_SESSION_ID','NEW_USER','PATH','COUNTRY_NAME',
+          'UTC_OFFSET_MINUTES','USER_AGENT','RECENCY','FREQUENCY','SECTION',
+          'PAGE_TITLE','SUBSCRIBER_ACCT',"date","time","cleaned_article","time_bin"],axis = 1,inplace = True)
+print(df_c.shape)
+categorical_col = ['CITY_NAME','DEVICE','browser','user_category','subscriber_type','topic','time_hour_cat']
+numerical_col = ['ENGAGED_TIME_ON_PAGE_SECONDS', 'TOTAL_TIME_ON_PAGE_SECONDS', 'PAGE_LOAD_TIME' ]
+print(df_c.info())
+
+#--------------------------- group by -----------------------------------
+# df_c1 = df_c.head()
+gpby = df_c.groupby(categorical_col)[numerical_col].agg(['mean', 'min','max'])
+gpby.columns = ["_".join(col_name).rstrip('_') for col_name in gpby.columns]
+
+gpby_ungrouped = gpby.reset_index()
+# print(gpby_ungrouped.shape)
+# gpby_ungrouped.isna().sum()
+gpby_ungrouped.dropna(axis = 0, how = 'any', inplace = True)
+print(gpby_ungrouped.shape)
+data = gpby_ungrouped.copy()
+del gpby_ungrouped 
+data["ID"] = range(len(data))
+
+features = data[["ENGAGED_TIME_ON_PAGE_SECONDS_mean","ENGAGED_TIME_ON_PAGE_SECONDS_min","ENGAGED_TIME_ON_PAGE_SECONDS_max",
+                "TOTAL_TIME_ON_PAGE_SECONDS_mean","TOTAL_TIME_ON_PAGE_SECONDS_min","TOTAL_TIME_ON_PAGE_SECONDS_max",
+                "PAGE_LOAD_TIME_mean","PAGE_LOAD_TIME_min","PAGE_LOAD_TIME_max"]]
+from sklearn.cluster import DBSCAN
+from sklearn.preprocessing import StandardScaler
+scaler = StandardScaler()  # Standardize features for better distance calculations
+scaled_features = scaler.fit_transform(features)
+clustering = DBSCAN(eps=0.01, min_samples=5)
+cluster_labels = clustering.fit_predict(scaled_features)
+data['cluster'] = cluster_labels
+
+unique_clusters = np.unique(cluster_labels[cluster_labels != -1])
+number_of_clusters = len(unique_clusters)
+print(number_of_clusters)
+data.head()
+
+
+
+
+
+
+
+
+
+
+
+
+# from sklearn.mixture import GaussianMixture
+# # wcss_list = []
+# # for k in range(1,5):  # Adjust the range of k values as needed
+# #     gmm = GaussianMixture(n_components=k)
+# #     gmm.fit(features)
+# #     wcss_list.append(gmm.score(features))
+
+# # plt.plot(range(1, 5), wcss_list)
+# # plt.xlabel('Number of Clusters (k)')
+# # plt.ylabel('WCSS')
+# # plt.title('Elbow Method for GMM Clustering')
+# # plt.show()
+
+# k = 4  # You can experiment with different values of k
+# # Create the GMM model
+# gmm = GaussianMixture(n_components=k, random_state=0)  # Set random_state for reproducibility
+# # Fit the model to the age data
+# gmm.fit(features)  # Use only the 'age' column for clustering
+# # Get cluster labels for each data point
+# cluster_labels = gmm.predict(features)
+# # Add a new column named 'cluster' to the DataFrame
+# data['cluster'] = cluster_labels
+
+# # Visualize the clusters using scatter plot
+# plt.scatter(data['mean'], data['cluster'], c=data['cluster'], cmap='viridis')  # Color by cluster
+# plt.xlabel('mean')
+# plt.ylabel('Cluster')
+# plt.title('GMM Clustering Results (k={})'.format(k))
+# plt.show()
+-------------------------------------------- articles----------------------------------------------
+pattern = 'homepage.*'  # Match "artclie" followed by any characters (greedy)
+bouncer_df = df[df['SECTION'].str.contains(pattern, case=False)]
+# bouncer_df.head()
+# bouncer_df["SECTION"].unique()
+
+df.shape # 395155
+bouncer_df.shape #168795
+(bouncer_df.shape[0]/df.shape[0])*100 #42.716
+#------------ non_bouncer----------------
+non_bouncer_df = df[~df['SECTION'].str.contains(pattern, case=False)]
+(non_bouncer_df.shape[0]/df.shape[0])*100 #57.28
+
+
+pattern = 'articles.*'  # Match "artclie" followed by any characters (greedy)
+article_df = df[df['SECTION'].str.contains(pattern, case=False)]
+article_df.shape  #192848
+(article_df.shape[0]/df.shape[0])*100
